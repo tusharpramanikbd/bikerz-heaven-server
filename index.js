@@ -48,9 +48,31 @@ async function run() {
     // Add new order to database
     app.post('/orders', async (req, res) => {
       const newOrder = req.body.data
-      console.log(newOrder)
-      const result = await ordersCollection.insertOne(newOrder)
-      res.send(result)
+      const newOrderResult = await ordersCollection.insertOne(newOrder)
+
+      // Getting available quantity from seleted product
+      const productId = newOrder.productId
+      const filter = { _id: ObjectId(productId) }
+      const bikePartResult = await bikePartsCollection.findOne(filter)
+      const availableQuantity = bikePartResult.availableQuantity
+
+      // Creating updated quantity
+      const updatedQuantity =
+        availableQuantity - parseInt(newOrder.orderQuantity)
+
+      // Updating available quantity
+      const options = { upsert: true }
+      const updatedDoc = {
+        $set: {
+          availableQuantity: updatedQuantity,
+        },
+      }
+      const updateQuantityResult = await bikePartsCollection.updateOne(
+        filter,
+        updatedDoc,
+        options
+      )
+      res.send(updateQuantityResult)
     })
   } finally {
     // await client.close()
