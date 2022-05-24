@@ -1,6 +1,7 @@
 const express = require('express')
 const cors = require('cors')
 const { MongoClient, ServerApiVersion } = require('mongodb')
+const jwt = require('jsonwebtoken')
 require('dotenv').config()
 const app = express()
 const port = process.env.PORT || 5000
@@ -26,6 +27,10 @@ async function run() {
       .collection('bikeParts')
     const ordersCollection = client.db('bikerz_heaven').collection('orders')
     const reviewsCollection = client.db('bikerz_heaven').collection('reviews')
+    const usersCollection = client.db('bikerz_heaven').collection('users')
+    const usersProfileCollection = client
+      .db('bikerz_heaven')
+      .collection('usersProfile')
 
     app.get('/', (req, res) => {
       res.send('Welcome To Bikerz Heaven Server...')
@@ -112,6 +117,61 @@ async function run() {
       let query = {}
       const reviews = await reviewsCollection.find(query).toArray()
       res.send(reviews)
+    })
+
+    // ===============================
+    // User section
+    // ===============================
+
+    // add user to database
+    app.put('/users/:email', async (req, res) => {
+      const email = req.params.email
+      const user = req.body.currentUser
+      const filter = { email: email }
+      const options = { upsert: true }
+      const updatedDoc = {
+        $set: user,
+      }
+      const result = await usersCollection.updateOne(
+        filter,
+        updatedDoc,
+        options
+      )
+      const accessToken = jwt.sign(
+        { email: email },
+        process.env.ACCESS_TOKEN_SECRET,
+        {
+          expiresIn: '1d',
+        }
+      )
+      res.send({ result, accessToken })
+    })
+
+    // =============================
+    // User profile section
+    // =============================
+    // add or update profile
+    app.put('/userprofile', async (req, res) => {
+      const newProfile = req.body.data
+      const filter = { email: newProfile.email }
+      const options = { upsert: true }
+      const updatedDoc = {
+        $set: newProfile,
+      }
+      const profileResult = await usersProfileCollection.updateOne(
+        filter,
+        updatedDoc,
+        options
+      )
+      res.send(profileResult)
+    })
+
+    // Get profile by email
+    app.get('/userprofile', async (req, res) => {
+      const email = req.query.email
+      const filter = { email: email }
+      const profileResult = await usersProfileCollection.findOne(filter)
+      res.send(profileResult)
     })
   } finally {
     // await client.close()
