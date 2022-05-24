@@ -45,6 +45,10 @@ async function run() {
       res.send(result)
     })
 
+    // =======================
+    // Order Section
+    // =======================
+
     // Get order list by email
     app.get('/orders', async (req, res) => {
       const email = req.query.email
@@ -81,6 +85,14 @@ async function run() {
         options
       )
       res.send(updateQuantityResult)
+    })
+
+    // Delete order by id
+    app.delete('/orders/:id', async (req, res) => {
+      const id = req.params.id
+      const filter = { _id: ObjectId(id) }
+      const result = await ordersCollection.deleteOne(filter)
+      res.send(result)
     })
   } finally {
     // await client.close()
