@@ -106,6 +106,13 @@ async function run() {
       const reviewResult = await reviewsCollection.insertOne(newReview)
       res.send(reviewResult)
     })
+
+    // get all review
+    app.get('/reviews', async (req, res) => {
+      let query = {}
+      const reviews = await reviewsCollection.find(query).toArray()
+      res.send(reviews)
+    })
   } finally {
     // await client.close()
   }
