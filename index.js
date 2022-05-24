@@ -25,6 +25,7 @@ async function run() {
       .db('bikerz_heaven')
       .collection('bikeParts')
     const ordersCollection = client.db('bikerz_heaven').collection('orders')
+    const reviewsCollection = client.db('bikerz_heaven').collection('reviews')
 
     app.get('/', (req, res) => {
       res.send('Welcome To Bikerz Heaven Server...')
@@ -93,6 +94,17 @@ async function run() {
       const filter = { _id: ObjectId(id) }
       const result = await ordersCollection.deleteOne(filter)
       res.send(result)
+    })
+
+    // ============================
+    // Review Section
+    // ============================
+
+    // add review
+    app.post('/reviews', async (req, res) => {
+      const newReview = req.body.data
+      const reviewResult = await reviewsCollection.insertOne(newReview)
+      res.send(reviewResult)
     })
   } finally {
     // await client.close()
