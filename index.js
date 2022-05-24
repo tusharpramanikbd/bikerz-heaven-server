@@ -45,6 +45,14 @@ async function run() {
       res.send(result)
     })
 
+    // Get order list by email
+    app.get('/orders', async (req, res) => {
+      const email = req.query.email
+      const filter = { email: email }
+      const orderResult = await ordersCollection.find(filter).toArray()
+      res.send(orderResult)
+    })
+
     // Add new order to database
     app.post('/orders', async (req, res) => {
       const newOrder = req.body.data
