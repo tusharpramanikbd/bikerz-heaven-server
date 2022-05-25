@@ -250,6 +250,14 @@ async function run() {
       res.send({ result, accessToken })
     })
 
+    // find a user admin or not
+    app.get('/admin/:email', verifyJWT, async (req, res) => {
+      const email = req.params.email
+      const user = await usersCollection.findOne({ email: email })
+      const isAdmin = user.role === 'admin'
+      res.send({ admin: isAdmin })
+    })
+
     // add admin role to user
     app.put('/users/admin/:email', verifyJWT, async (req, res) => {
       const email = req.params.email
