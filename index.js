@@ -48,6 +48,19 @@ async function run() {
       .db('bikerz_heaven')
       .collection('usersProfile')
 
+    // Admin verify
+    const verifyAdmin = async (req, res, next) => {
+      const requester = req.decoded.email
+      const requestedAccount = await usersCollection.findOne({
+        email: requester,
+      })
+      if (requestedAccount.role === 'admin') {
+        next()
+      } else {
+        res.status(403).send({ message: 'forbidden' })
+      }
+    }
+
     app.get('/', (req, res) => {
       res.send('Welcome To Bikerz Heaven Server...')
     })
@@ -72,14 +85,14 @@ async function run() {
     })
 
     // Add bike parts
-    app.post('/bikeparts', verifyJWT, async (req, res) => {
+    app.post('/bikeparts', verifyJWT, verifyAdmin, async (req, res) => {
       const newBikeParts = req.body.data
       const bikePartsResult = await bikePartsCollection.insertOne(newBikeParts)
       res.send(bikePartsResult)
     })
 
     // Delete bike parts by id
-    app.delete('/bikeparts/:id', verifyJWT, async (req, res) => {
+    app.delete('/bikeparts/:id', verifyJWT, verifyAdmin, async (req, res) => {
       const id = req.params.id
       const filter = { _id: ObjectId(id) }
       const result = await bikePartsCollection.deleteOne(filter)
@@ -180,7 +193,7 @@ async function run() {
     })
 
     // Update order payment status
-    app.put('/orders/:id', verifyJWT, async (req, res) => {
+    app.put('/orders/:id', verifyJWT, verifyAdmin, async (req, res) => {
       const id = req.params.id
       const updatedOrder = req.body.data
       const filter = { _id: ObjectId(id) }
@@ -221,7 +234,7 @@ async function run() {
     // ===============================
 
     // get all users
-    app.get('/users', verifyJWT, async (req, res) => {
+    app.get('/users', verifyJWT, verifyAdmin, async (req, res) => {
       const users = await usersCollection.find().toArray()
       res.send(users)
     })
@@ -259,7 +272,7 @@ async function run() {
     })
 
     // add admin role to user
-    app.put('/users/admin/:email', verifyJWT, async (req, res) => {
+    app.put('/users/admin/:email', verifyJWT, verifyAdmin, async (req, res) => {
       const email = req.params.email
       const filter = { email: email }
       const updatedDoc = {
