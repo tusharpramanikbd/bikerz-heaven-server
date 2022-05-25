@@ -199,6 +199,12 @@ async function run() {
     // User section
     // ===============================
 
+    // get all review
+    app.get('/users', async (req, res) => {
+      const users = await usersCollection.find().toArray()
+      res.send(users)
+    })
+
     // add user to database
     app.put('/users/:email', async (req, res) => {
       const email = req.params.email
@@ -223,9 +229,21 @@ async function run() {
       res.send({ result, accessToken })
     })
 
+    // add admin role to user
+    app.put('/users/admin/:email', async (req, res) => {
+      const email = req.params.email
+      const filter = { email: email }
+      const updatedDoc = {
+        $set: { role: 'admin' },
+      }
+      const result = await usersCollection.updateOne(filter, updatedDoc)
+      res.send(result)
+    })
+
     // =============================
     // User profile section
     // =============================
+
     // add or update profile
     app.put('/userprofile', async (req, res) => {
       const newProfile = req.body.data
