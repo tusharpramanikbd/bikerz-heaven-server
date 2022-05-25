@@ -3,6 +3,7 @@ const cors = require('cors')
 const { MongoClient, ServerApiVersion } = require('mongodb')
 const jwt = require('jsonwebtoken')
 require('dotenv').config()
+const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY)
 const app = express()
 const port = process.env.PORT || 5000
 const ObjectId = require('mongodb').ObjectId
@@ -44,6 +45,7 @@ async function run() {
     const ordersCollection = client.db('bikerz_heaven').collection('orders')
     const reviewsCollection = client.db('bikerz_heaven').collection('reviews')
     const usersCollection = client.db('bikerz_heaven').collection('users')
+    const paymentCollection = client.db('bikerz_heaven').collection('payments')
     const usersProfileCollection = client
       .db('bikerz_heaven')
       .collection('usersProfile')
@@ -60,6 +62,24 @@ async function run() {
         res.status(403).send({ message: 'forbidden' })
       }
     }
+
+    // Create payment intent
+    app.post('/create-payment-intent', verifyJWT, async (req, res) => {
+      const order = req.body.paymentData
+      const price = order.price
+      const amount = price * 100
+
+      // Create a PaymentIntent with the order amount and currency
+      const paymentIntent = await stripe.paymentIntents.create({
+        amount: amount,
+        currency: 'usd',
+        payment_method_types: ['card'],
+      })
+
+      res.send({
+        clientSecret: paymentIntent.client_secret,
+      })
+    })
 
     app.get('/', (req, res) => {
       res.send('Welcome To Bikerz Heaven Server...')
@@ -104,14 +124,14 @@ async function run() {
     // =======================
 
     // Get all orders
-    app.get('/orders', verifyJWT, async (req, res) => {
+    app.get('/orders', verifyJWT, verifyAdmin, async (req, res) => {
       const filter = {}
       const orderResult = await ordersCollection.find(filter).toArray()
       res.send(orderResult)
     })
 
     // Get order list by email
-    app.get('/orders', verifyJWT, async (req, res) => {
+    app.get('/ordersbyemail', verifyJWT, async (req, res) => {
       const email = req.query.email
       const decodedEmail = req.decoded.email
       if (decodedEmail === email) {
@@ -209,6 +229,31 @@ async function run() {
         options
       )
       res.send(result)
+    })
+
+    // get order by id
+    app.get('/orders/:id', verifyJWT, async (req, res) => {
+      const id = req.params.id
+      const query = { _id: ObjectId(id) }
+      const result = await ordersCollection.findOne(query)
+      res.send(result)
+    })
+
+    app.patch('/orders/:id', verifyJWT, async (req, res) => {
+      const id = req.params.id
+      const payment = req.body.payment
+      const filter = { _id: ObjectId(id) }
+      const updatedDoc = {
+        $set: {
+          payment: 'pending',
+          transactionId: payment.transactionId,
+        },
+      }
+
+      const updatedOrder = await ordersCollection.updateOne(filter, updatedDoc)
+      const result = await paymentCollection.insertOne(payment)
+
+      res.send(updatedOrder)
     })
 
     // ============================
