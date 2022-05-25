@@ -55,6 +55,13 @@ async function run() {
     // Order Section
     // =======================
 
+    // Get all orders
+    app.get('/orders', async (req, res) => {
+      const filter = {}
+      const orderResult = await ordersCollection.find(filter).toArray()
+      res.send(orderResult)
+    })
+
     // Get order list by email
     app.get('/orders', async (req, res) => {
       const email = req.query.email
@@ -98,6 +105,25 @@ async function run() {
       const id = req.params.id
       const filter = { _id: ObjectId(id) }
       const result = await ordersCollection.deleteOne(filter)
+      res.send(result)
+    })
+
+    // Update order payment status
+    app.put('/orders/:id', async (req, res) => {
+      const id = req.params.id
+      const updatedOrder = req.body.data
+      const filter = { _id: ObjectId(id) }
+      const options = { upsert: true }
+      const updatedDoc = {
+        $set: {
+          payment: updatedOrder.newPaymentStatus,
+        },
+      }
+      const result = await ordersCollection.updateOne(
+        filter,
+        updatedDoc,
+        options
+      )
       res.send(result)
     })
 
