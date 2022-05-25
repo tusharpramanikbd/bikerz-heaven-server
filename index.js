@@ -36,6 +36,10 @@ async function run() {
       res.send('Welcome To Bikerz Heaven Server...')
     })
 
+    // ==============================
+    // Bike Parts Section
+    // ==============================
+
     // All Bike parts get api
     app.get('/bikeparts', async (req, res) => {
       let query = {}
@@ -49,6 +53,12 @@ async function run() {
       const query = { _id: ObjectId(id) }
       const result = await bikePartsCollection.findOne(query)
       res.send(result)
+    })
+
+    app.post('/bikeparts', async (req, res) => {
+      const newBikeParts = req.body.data
+      const bikePartsResult = await bikePartsCollection.insertOne(newBikeParts)
+      res.send(bikePartsResult)
     })
 
     // =======================
