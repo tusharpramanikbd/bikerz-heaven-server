@@ -10,6 +10,22 @@ const ObjectId = require('mongodb').ObjectId
 app.use(cors())
 app.use(express.json())
 
+// JWT token verification function
+const verifyJWT = (req, res, next) => {
+  const authHeader = req.headers.authorization
+  if (!authHeader) {
+    return res.status(401).send({ message: 'Unauthorized Access' })
+  }
+  const token = authHeader.split(' ')[1]
+  jwt.verify(token, process.env.ACCESS_TOKEN_SECRET, (err, decoded) => {
+    if (err) {
+      return res.status(403).send({ message: 'Forbidden Access' })
+    }
+    req.decoded = decoded
+  })
+  next()
+}
+
 const uri = `mongodb+srv://${process.env.DB_USER}:${process.env.DB_PASS}@cluster0.ukthn.mongodb.net/?retryWrites=true&w=majority`
 
 const client = new MongoClient(uri, {
@@ -48,7 +64,7 @@ async function run() {
     })
 
     // Get single bike part by id
-    app.get('/bikeparts/:id', async (req, res) => {
+    app.get('/bikeparts/:id', verifyJWT, async (req, res) => {
       const id = req.params.id
       const query = { _id: ObjectId(id) }
       const result = await bikePartsCollection.findOne(query)
@@ -56,14 +72,14 @@ async function run() {
     })
 
     // Add bike parts
-    app.post('/bikeparts', async (req, res) => {
+    app.post('/bikeparts', verifyJWT, async (req, res) => {
       const newBikeParts = req.body.data
       const bikePartsResult = await bikePartsCollection.insertOne(newBikeParts)
       res.send(bikePartsResult)
     })
 
     // Delete bike parts by id
-    app.delete('/bikeparts/:id', async (req, res) => {
+    app.delete('/bikeparts/:id', verifyJWT, async (req, res) => {
       const id = req.params.id
       const filter = { _id: ObjectId(id) }
       const result = await bikePartsCollection.deleteOne(filter)
@@ -75,22 +91,27 @@ async function run() {
     // =======================
 
     // Get all orders
-    app.get('/orders', async (req, res) => {
+    app.get('/orders', verifyJWT, async (req, res) => {
       const filter = {}
       const orderResult = await ordersCollection.find(filter).toArray()
       res.send(orderResult)
     })
 
     // Get order list by email
-    app.get('/orders', async (req, res) => {
+    app.get('/orders', verifyJWT, async (req, res) => {
       const email = req.query.email
-      const filter = { email: email }
-      const orderResult = await ordersCollection.find(filter).toArray()
-      res.send(orderResult)
+      const decodedEmail = req.decoded.email
+      if (decodedEmail === email) {
+        const filter = { email: email }
+        const orderResult = await ordersCollection.find(filter).toArray()
+        res.send(orderResult)
+      } else {
+        return res.status(403).send({ message: 'Forbidden Access' })
+      }
     })
 
     // Add new order to database
-    app.post('/orders', async (req, res) => {
+    app.post('/orders', verifyJWT, async (req, res) => {
       const newOrder = req.body.data
       const newOrderResult = await ordersCollection.insertOne(newOrder)
 
@@ -120,7 +141,7 @@ async function run() {
     })
 
     // Delete order by id
-    app.delete('/orders/:id', async (req, res) => {
+    app.delete('/orders/:id', verifyJWT, async (req, res) => {
       const id = req.params.id
       const filter = { _id: ObjectId(id) }
 
@@ -159,7 +180,7 @@ async function run() {
     })
 
     // Update order payment status
-    app.put('/orders/:id', async (req, res) => {
+    app.put('/orders/:id', verifyJWT, async (req, res) => {
       const id = req.params.id
       const updatedOrder = req.body.data
       const filter = { _id: ObjectId(id) }
@@ -182,7 +203,7 @@ async function run() {
     // ============================
 
     // add review
-    app.post('/reviews', async (req, res) => {
+    app.post('/reviews', verifyJWT, async (req, res) => {
       const newReview = req.body.data
       const reviewResult = await reviewsCollection.insertOne(newReview)
       res.send(reviewResult)
@@ -199,8 +220,8 @@ async function run() {
     // User section
     // ===============================
 
-    // get all review
-    app.get('/users', async (req, res) => {
+    // get all users
+    app.get('/users', verifyJWT, async (req, res) => {
       const users = await usersCollection.find().toArray()
       res.send(users)
     })
@@ -230,7 +251,7 @@ async function run() {
     })
 
     // add admin role to user
-    app.put('/users/admin/:email', async (req, res) => {
+    app.put('/users/admin/:email', verifyJWT, async (req, res) => {
       const email = req.params.email
       const filter = { email: email }
       const updatedDoc = {
@@ -245,7 +266,7 @@ async function run() {
     // =============================
 
     // add or update profile
-    app.put('/userprofile', async (req, res) => {
+    app.put('/userprofile', verifyJWT, async (req, res) => {
       const newProfile = req.body.data
       const filter = { email: newProfile.email }
       const options = { upsert: true }
@@ -261,7 +282,7 @@ async function run() {
     })
 
     // Get profile by email
-    app.get('/userprofile', async (req, res) => {
+    app.get('/userprofile', verifyJWT, async (req, res) => {
       const email = req.query.email
       const filter = { email: email }
       const profileResult = await usersProfileCollection.findOne(filter)
