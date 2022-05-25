@@ -55,10 +55,19 @@ async function run() {
       res.send(result)
     })
 
+    // Add bike parts
     app.post('/bikeparts', async (req, res) => {
       const newBikeParts = req.body.data
       const bikePartsResult = await bikePartsCollection.insertOne(newBikeParts)
       res.send(bikePartsResult)
+    })
+
+    // Delete bike parts by id
+    app.delete('/bikeparts/:id', async (req, res) => {
+      const id = req.params.id
+      const filter = { _id: ObjectId(id) }
+      const result = await bikePartsCollection.deleteOne(filter)
+      res.send(result)
     })
 
     // =======================
@@ -114,7 +123,38 @@ async function run() {
     app.delete('/orders/:id', async (req, res) => {
       const id = req.params.id
       const filter = { _id: ObjectId(id) }
+
+      // get the order by id before delete
+      const order = await ordersCollection.findOne(filter)
+
+      // delete the order
       const result = await ordersCollection.deleteOne(filter)
+
+      // if delete successful
+      if (result) {
+        const orderQuantity = parseInt(order.orderQuantity)
+
+        // get the product of the deleted order
+        const productId = order.productId
+        const productFilter = { _id: ObjectId(productId) }
+        const product = await bikePartsCollection.findOne(productFilter)
+
+        // add quantity of the deleted order with available quantity
+        const availableQuantity = parseInt(product.availableQuantity)
+        const updatedQuantity = availableQuantity + orderQuantity
+
+        const options = { upsert: true }
+        const updatedDoc = {
+          $set: {
+            availableQuantity: updatedQuantity.toString(),
+          },
+        }
+        const updateResult = await bikePartsCollection.updateOne(
+          productFilter,
+          updatedDoc,
+          options
+        )
+      }
       res.send(result)
     })
 
