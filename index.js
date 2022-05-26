@@ -164,7 +164,7 @@ async function run() {
       const options = { upsert: true }
       const updatedDoc = {
         $set: {
-          availableQuantity: updatedQuantity,
+          availableQuantity: updatedQuantity.toString(),
         },
       }
       const updateQuantityResult = await bikePartsCollection.updateOne(
