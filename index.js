@@ -47,6 +47,7 @@ async function run() {
     const usersCollection = client.db('bikerz_heaven').collection('users')
     const paymentCollection = client.db('bikerz_heaven').collection('payments')
     const salesCollection = client.db('bikerz_heaven').collection('sales')
+    const messageCollection = client.db('bikerz_heaven').collection('messages')
     const usersProfileCollection = client
       .db('bikerz_heaven')
       .collection('usersProfile')
@@ -366,6 +367,16 @@ async function run() {
       const cursor = salesCollection.find(query)
       const sales = await cursor.toArray()
       res.send(sales)
+    })
+
+    // ============================
+    // Message section
+    // ============================
+    // add review
+    app.post('/messages', async (req, res) => {
+      const newMessage = req.body.data
+      const messageResult = await messageCollection.insertOne(newMessage)
+      res.send(messageResult)
     })
   } finally {
     // await client.close()
