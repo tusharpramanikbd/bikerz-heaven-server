@@ -46,6 +46,7 @@ async function run() {
     const reviewsCollection = client.db('bikerz_heaven').collection('reviews')
     const usersCollection = client.db('bikerz_heaven').collection('users')
     const paymentCollection = client.db('bikerz_heaven').collection('payments')
+    const salesCollection = client.db('bikerz_heaven').collection('sales')
     const usersProfileCollection = client
       .db('bikerz_heaven')
       .collection('usersProfile')
@@ -353,6 +354,18 @@ async function run() {
       const filter = { email: email }
       const profileResult = await usersProfileCollection.findOne(filter)
       res.send(profileResult)
+    })
+
+    // ============================
+    // Sales section
+    // ============================
+
+    // Get the list the sales
+    app.get('/sales', async (req, res) => {
+      let query = {}
+      const cursor = salesCollection.find(query)
+      const sales = await cursor.toArray()
+      res.send(sales)
     })
   } finally {
     // await client.close()
